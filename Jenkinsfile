@@ -18,8 +18,8 @@ pipeline {
         
         stage('Static Test') {
         
-        {
-            parallel
+        
+            parallel {
             
             stage ('Flake8') {
             
