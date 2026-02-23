@@ -56,6 +56,9 @@ pipeline {
             
             steps {
 
+            sh'''
+            echo 'Hola'
+            '''
 
 
             }
@@ -64,8 +67,10 @@ pipeline {
         stage('Rest Test') {
             
             steps {
-
-
+            
+            sh'''
+            echo 'Hola'
+            '''
 
             }
         }
@@ -74,7 +79,9 @@ pipeline {
             
             steps {
 
-
+            sh'''
+            echo 'Hola'
+            '''
 
             }
         }
