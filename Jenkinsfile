@@ -28,7 +28,7 @@ pipeline {
                 unstash 'code'
                 sh '''
                 
-                flake8 src || true
+                flake8 src --format=html --htmldir=reports/flake8 || true
                 
                 '''
 
@@ -43,7 +43,7 @@ pipeline {
                 
                 sh '''
                 
-                bandit -r src -f txt || true
+                bandit -r src -f html -o reports/bandit.html || true
                 
                 '''
                     
