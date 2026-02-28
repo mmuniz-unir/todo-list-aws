@@ -96,10 +96,26 @@ pipeline {
             
             steps {
 
-            sh'''
-            echo 'Hola'
-            '''
-
+                echo "=== Promote Stage ==="
+        
+                withCredentials([usernamePassword(
+                    credentialsId: 'github-token', 
+                    usernameVariable: 'GIT_USER', 
+                    passwordVariable: 'GIT_TOKEN'
+                )]) {
+                    sh '''
+                        git config --global user.name "Marc Muñiz"
+                        git config --global user.email "marcmusuau@gmail.com"
+        
+                        git checkout develop
+        
+                        git checkout master
+                        git merge develop
+        
+                        git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
+                        git push origin master
+                    '''
+            
             }
         }
     }    
