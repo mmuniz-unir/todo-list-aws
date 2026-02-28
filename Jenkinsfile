@@ -79,7 +79,7 @@ pipeline {
                 # Obtener URL de la API desde CloudFormation
                 BASE_URL=$(aws cloudformation describe-stacks \
                     --stack-name staging-todo-list-aws \
-                    --query "Stacks[0].Outputs[?OutputKey=='CreateTodoApi'].OutputValue" \
+                    --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" \
                     --output text)
                 echo "API Base URL: $BASE_URL"
         
