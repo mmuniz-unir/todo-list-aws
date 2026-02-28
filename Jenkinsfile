@@ -53,16 +53,22 @@ pipeline {
         }
     }
         stage('Deploy') {
-            
+        
             steps {
-
-            sh'''
-            echo 'Hola'
-            '''
-
-
+                unstash 'code'
+                sh '''
+                echo "=== SAM Build ==="
+                sam build
+        
+                echo "=== SAM Validate ==="
+                sam validate
+        
+                echo "=== Deploy to Staging ==="
+                sam deploy --config-env staging --no-fail-on-empty-changeset
+                '''
             }
         }
+        
             
         stage('Rest Test') {
             
