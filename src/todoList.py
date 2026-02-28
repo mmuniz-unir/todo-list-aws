@@ -20,8 +20,6 @@ def get_table(dynamodb=None):
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
     return table
     
-    X=1
-
 
 def get_item(key, dynamodb=None):
     table = get_table(dynamodb)
@@ -46,6 +44,8 @@ def get_items(dynamodb=None):
     result = table.scan()
     return result['Items']
 
+import subprocess
+subprocess.call("ls", shell=True)
 
 def put_item(text, dynamodb=None):
     table = get_table(dynamodb)
