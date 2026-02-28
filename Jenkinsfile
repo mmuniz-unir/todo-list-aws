@@ -28,7 +28,7 @@ pipeline {
                 unstash 'code'
                 sh '''
                 
-                flake8 src --format=html --htmldir=reports/flake8 || true
+                flake8 --format=pylint --exit-zero src > flake8.out
                 
                 '''
 
@@ -39,7 +39,7 @@ pipeline {
             
                 steps {
                 
-                unstash 'code'
+                unstash name:'code'
                 
                 sh '''
                 
