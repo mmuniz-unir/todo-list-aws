@@ -43,7 +43,7 @@ pipeline {
                 
                 sh '''
                 
-                bandit -r src -f html -o reports/bandit.html || true
+                bandit --exit-zero -r src -f txt | tee bandit.out
                 
                 '''
                     
