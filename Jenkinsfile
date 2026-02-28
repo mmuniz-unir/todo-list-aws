@@ -112,7 +112,7 @@ pipeline {
                         git checkout master
                         git merge develop
         
-                        git remote set-url origin https://${GIT_USER}:${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
+                        git remote set-url origin https://${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
                         git push origin master
                     '''
             
