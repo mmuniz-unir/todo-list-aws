@@ -1,148 +1,131 @@
 import os
-import boto3
-import time
-import uuid
+import unittest
 import json
-import functools
-from botocore.exceptions import ClientError
+import requests
+import pytest
+
+BASE_URL = os.environ.get("BASE_URL")
+DEFAULT_TIMEOUT = 2  # in secs
 
 
-def get_table(dynamodb=None):
-    if not dynamodb:
-        URL = os.environ['ENDPOINT_OVERRIDE']
-        if URL:
-            print('URL dynamoDB:'+URL)
-            boto3.client = functools.partial(boto3.client, endpoint_url=URL)
-            boto3.resource = functools.partial(boto3.resource,
-                                               endpoint_url=URL)
-        dynamodb = boto3.resource("dynamodb")
-    # fetch todo from the database
-    table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
-    return table
+@pytest.mark.api
+class TestApi(unittest.TestCase):
     
+    def setUp(self):
+        self.assertIsNotNone(BASE_URL, "URL no configurada")
+        self.assertTrue(len(BASE_URL) > 8, "URL no configurada")
 
-def get_item(key, dynamodb=None):
-    table = get_table(dynamodb)
-    try:
-        result = table.get_item(
-            Key={
-                'id': key
-            }
-        )
+    def test_api_listtodos(self):
+        print('---------------------------------------')
+        print('Starting - integration test List TODO')
+        
+        # Add TODO
+        url = BASE_URL + "/todos"
+        data = {"text": "Integration text example"}
+        response = requests.post(url, data=json.dumps(data))
+        jsonbody = response.json()
+        ID_TODO = jsonbody['id']
+        print('Created To-Do:', jsonbody)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(jsonbody['text'], "Integration text example")
+        
+        # List
+        response = requests.get(url)
+        print('Response List Todo:', response.json())
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json())
 
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-    else:
-        print('Result getItem:'+str(result))
-        if 'Item' in result:
-            return result['Item']
+        # Cleanup
+        requests.delete(url + '/' + ID_TODO)
+        print('End - integration test List TODO')
 
+    def test_api_addtodo(self):
+        print('---------------------------------------')
+        print('Starting - integration test Add TODO')
+        url = BASE_URL + "/todos"
+        data = {"text": "Integration text example"}
+        response = requests.post(url, data=json.dumps(data))
+        jsonbody = response.json()
+        ID_TODO = jsonbody['id']
+        print('Created To-Do:', jsonbody)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(jsonbody['text'], "Integration text example")
+        
+        # Delete
+        response = requests.delete(url + '/' + ID_TODO)
+        self.assertEqual(response.status_code, 200)
+        print('End - integration test Add TODO')
 
-def get_items(dynamodb=None):
-    table = get_table(dynamodb)
-    # fetch todo from the database
-    result = table.scan()
-    return result['Items']
+    def test_api_gettodo(self):
+        print('---------------------------------------')
+        print('Starting - integration test Get TODO')
+        url = BASE_URL + "/todos"
+        data = {"text": "Integration text example - GET"}
+        response = requests.post(url, data=json.dumps(data))
+        jsonbody = response.json()
+        ID_TODO = jsonbody['id']
+        print('Created To-Do:', jsonbody)
+        
+        # Get
+        response = requests.get(url + '/' + ID_TODO)
+        jsonbody = response.json()
+        print('Response Get Todo:', jsonbody)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(jsonbody['text'], "Integration text example - GET")
 
+        # Delete
+        response = requests.delete(url + '/' + ID_TODO)
+        self.assertEqual(response.status_code, 200)
+        print('End - integration test Get TODO')
 
-def put_item(text, dynamodb=None):
-    table = get_table(dynamodb)
-    timestamp = str(time.time())
-    print('Table name:' + table.name)
-    item = {
-        'id': str(uuid.uuid1()),
-        'text': text,
-        'checked': False,
-        'createdAt': timestamp,
-        'updatedAt': timestamp,
-    }
-    try:
-        # write the todo to the database
-        table.put_item(Item=item)
-        # create a response
-        response = {
-            "statusCode": 200,
-            "body": json.dumps(item)
-        }
+    def test_api_updatetodo(self):
+        print('---------------------------------------')
+        print('Starting - integration test Update TODO')
+        url = BASE_URL + "/todos"
+        data = {"text": "Integration text example - Initial"}
+        response = requests.post(url, data=json.dumps(data))
+        jsonbody = response.json()
+        ID_TODO = jsonbody['id']
+        print('Created To-Do:', jsonbody)
+        
+        # Update
+        update_data = {"text": "Integration text example - Modified", "checked": True}
+        response = requests.put(url + '/' + ID_TODO, data=json.dumps(update_data))
+        jsonbody = response.json()
+        print('Updated To-Do:', jsonbody)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(jsonbody['text'], "Integration text example - Modified")
+        
+        # Get and validate
+        response = requests.get(url + '/' + ID_TODO)
+        jsonbody = response.json()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(jsonbody['text'], "Integration text example - Modified")
+        
+        # Delete
+        response = requests.delete(url + '/' + ID_TODO)
+        self.assertEqual(response.status_code, 200)
+        print('End - integration test Update TODO')
 
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-    else:
-        return response
-
-
-def update_item(key, text, checked, dynamodb=None):
-    table = get_table(dynamodb)
-    timestamp = int(time.time() * 1000)
-    # update the todo in the database
-    try:
-        result = table.update_item(
-            Key={
-                'id': key
-            },
-            ExpressionAttributeNames={
-              '#todo_text': 'text',
-            },
-            ExpressionAttributeValues={
-              ':text': text,
-              ':checked': checked,
-              ':updatedAt': timestamp,
-            },
-            UpdateExpression='SET #todo_text = :text, '
-                             'checked = :checked, '
-                             'updatedAt = :updatedAt',
-            ReturnValues='ALL_NEW',
-        )
-
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-    else:
-        return result['Attributes']
-
-
-def delete_item(key, dynamodb=None):
-    table = get_table(dynamodb)
-    # delete the todo from the database
-    try:
-        table.delete_item(
-            Key={
-                'id': key
-            }
-        )
-
-    except ClientError as e:
-        print(e.response['Error']['Message'])
-    else:
-        return
-
-
-def create_todo_table(dynamodb):
-    # For unit testing
-    tableName = os.environ['DYNAMODB_TABLE']
-    print('Creating Table with name:' + tableName)
-    table = dynamodb.create_table(
-        TableName=tableName,
-        KeySchema=[
-            {
-                'AttributeName': 'id',
-                'KeyType': 'HASH'
-            }
-        ],
-        AttributeDefinitions=[
-            {
-                'AttributeName': 'id',
-                'AttributeType': 'S'
-            }
-        ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 1,
-            'WriteCapacityUnits': 1
-        }
-    )
-
-    # Wait until the table exists.
-    table.meta.client.get_waiter('table_exists').wait(TableName=tableName)
-    if (table.table_status != 'ACTIVE'):
-        raise AssertionError()
-
-    return table
+    def test_api_deletetodo(self):
+        print('---------------------------------------')
+        print('Starting - integration test Delete TODO')
+        url = BASE_URL + "/todos"
+        data = {"text": "Integration text example - Initial"}
+        response = requests.post(url, data=json.dumps(data))
+        jsonbody = response.json()
+        ID_TODO = jsonbody['id']
+        print('Created To-Do:', jsonbody)
+        
+        # Delete
+        response = requests.delete(url + '/' + ID_TODO)
+        self.assertEqual(response.status_code, 200)
+        print('Deleted To-Do:', ID_TODO)
+        
+        # Confirm deletion
+        response = requests.get(url + '/' + ID_TODO)
+        self.assertEqual(response.status_code, 404)
+        print('End - integration test Delete TODO')
