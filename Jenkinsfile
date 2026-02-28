@@ -28,7 +28,7 @@ pipeline {
                 unstash name:'code'
                 sh '''
                 
-                flake8 --format=pylint --exit-zero src > flake8.out
+                flake8 --format=pylint --exit-zero src | tee flake8.out
                 
                 '''
 
