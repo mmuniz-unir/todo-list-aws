@@ -19,6 +19,8 @@ def get_table(dynamodb=None):
     # fetch todo from the database
     table = dynamodb.Table(os.environ['DYNAMODB_TABLE'])
     return table
+    
+    X=1
 
 
 def get_item(key, dynamodb=None):
