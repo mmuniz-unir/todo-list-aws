@@ -87,8 +87,9 @@ pipeline {
                 export BASE_URL
         
                 # Ejecutamos las pruebas de integración con Pytest
-                python3 -m pytest test/integration/todoApiTest.py --maxfail=1 --disable-warnings
+                python3 -m pytest test/integration/todoApiTest.py --maxfail=1 --disable-warnings --junitxml=reports/test-results.xml
                 '''
+                stash includes: 'reports/**', name: 'pytest-results'
             }
         }
 
@@ -126,6 +127,8 @@ pipeline {
     }
         post {
         always {
+            unstash 'pytest-results'
+            junit 'reports/test-results.xml'
             echo 'Cleaning workspace...'
             cleanWs()
         }
