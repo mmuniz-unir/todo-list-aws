@@ -108,14 +108,13 @@ pipeline {
                         git config --global user.email "marcmusuau@gmail.com"
         
                         git checkout master
+                        git pull origin master
         
-                        # Mantener Jenkinsfile de master
-                        git checkout master -- Jenkinsfile
+                        git merge develop --no-commit --no-ff
         
-                        git merge develop --no-ff -m "Promote to master"
+                        git checkout origin/master -- Jenkinsfile
         
-                        # Restaurar Jenkinsfile de master por si el merge lo tocó
-                        git checkout HEAD -- Jenkinsfile
+                        git commit -m "Promote to master (keeping CD Jenkinsfile)"
         
                         git remote set-url origin https://${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
                         git push origin master
