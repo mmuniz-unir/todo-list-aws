@@ -17,6 +17,8 @@ pipeline {
         stage('Deploy Production') {
             steps {
                 sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
                     echo "=== SAM Build ==="
                     sam build
 
@@ -32,6 +34,8 @@ pipeline {
         stage('Rest Test (Read Only)') {
             steps {
                 sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
                     echo "=== REST TEST PRODUCTION ==="
 
                     BASE_URL=$(aws cloudformation describe-stacks \

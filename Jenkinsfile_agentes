@@ -9,6 +9,10 @@ pipeline {
 
         stage('Get Code') {
             steps {
+                sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
+                '''
                 git branch: 'master', 
                     url: 'https://github.com/mmuniz-unir/todo-list-aws.git'
                 stash name: 'code', includes: '**'
@@ -20,6 +24,10 @@ pipeline {
                 stage('Flake8') {
                     agent { label 'linux' }
                     steps {
+                        sh '''
+                            echo "Node: $(hostname)"
+                            echo "User: $(whoami)"
+                        '''
                         unstash 'code'
                         sh '''
                             flake8 --format=pylint --exit-zero src | tee flake8.out
@@ -29,6 +37,10 @@ pipeline {
                 stage('Bandit') {
                     agent { label 'linux' }
                     steps {
+                        sh '''
+                            echo "Node: $(hostname)"
+                            echo "User: $(whoami)"
+                        '''
                         unstash 'code'
                         sh '''
                             bandit --exit-zero -r src -f txt | tee bandit.out
@@ -41,6 +53,10 @@ pipeline {
         stage('Deploy Production') {
             agent { label 'linux' }
             steps {
+                sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
+                '''
                 unstash 'code'
                 script {
                     sh "sam build"
@@ -52,7 +68,6 @@ pipeline {
                     )
                     echo "Deploy exit code: ${deployStatus}"
 
-                    // Obtener URL de la API y stashearla
                     env.BASE_URL = sh(
                         script: "aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query \"Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue\" --output text",
                         returnStdout: true
@@ -65,7 +80,12 @@ pipeline {
         }
 
         stage('Rest Test (Read Only)') {
+            agent { label 'linux' }
             steps {
+                sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
+                '''
                 unstash 'code'
                 unstash 'base_url'
                 script {
