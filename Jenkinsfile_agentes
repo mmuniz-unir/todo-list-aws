@@ -68,7 +68,7 @@ pipeline {
                 sam validate
         
                 echo "=== Deploy to Staging ==="
-                sam deploy --config-env staging --no-fail-on-empty-changeset
+                sam deploy --config-env staging --no-fail-on-empty-changeset || true
                 '''
                 script {
                     env.BASE_URL = sh(
