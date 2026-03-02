@@ -51,12 +51,14 @@ pipeline {
                     fi
                     cp config/samconfig.toml .
                 '''
+                stash name: 'samconfig', includes: 'samconfig.toml'
             }
         }
 
         stage('Deploy') {
             steps {
                 unstash 'code'
+                unstash 'samconfig'
                 script {
                     def STACK_NAME = "staging-todo-list-aws"
                     sh "sam build"
@@ -116,7 +118,7 @@ pipeline {
                         git checkout master
                         git pull origin master
                         git merge develop --no-ff -m "Promote to master"
-                        git checkout HEAD -- Jenkinsfile Jenkinsfile_agentes samconfig.toml
+                        git checkout HEAD -- Jenkinsfile Jenkinsfile_agentes samconfig.toml Jenkinsfile_reto4
                         git remote set-url origin https://${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
                         git push origin master
                     '''
