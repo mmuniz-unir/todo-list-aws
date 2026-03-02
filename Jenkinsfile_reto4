@@ -1,0 +1,145 @@
+pipeline {
+    agent any
+
+    environment {
+        STACK_NAME = "todo-list-aws-production"
+    }
+
+    stages {
+
+        stage('Get Code') {
+            steps {
+                sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
+                '''
+                git branch: 'master', 
+                    url: 'https://github.com/mmuniz-unir/todo-list-aws.git'
+                stash name: 'code', includes: '**'
+            }
+        }
+
+        stage('Static Analysis') {
+            parallel {
+                stage('Flake8') {
+                    agent { label 'linux' }
+                    steps {
+                        sh '''
+                            echo "Node: $(hostname)"
+                            echo "User: $(whoami)"
+                        '''
+                        unstash 'code'
+                        sh 'flake8 --format=pylint --exit-zero src | tee flake8.out'
+                    }
+                }
+                stage('Bandit') {
+                    agent { label 'linux' }
+                    steps {
+                        sh '''
+                            echo "Node: $(hostname)"
+                            echo "User: $(whoami)"
+                        '''
+                        unstash 'code'
+                        sh 'bandit --exit-zero -r src -f txt | tee bandit.out'
+                    }
+                }
+            }
+        }
+
+        stage('Get Config (Production)') {
+            agent { label 'linux' }
+            steps {
+                sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
+
+                    CONFIG_DIR=config
+                    CONFIG_REPO=https://github.com/mmuniz-unir/todo-list-aws-config.git
+                    CONFIG_BRANCH=production
+
+                    if [ -d "$CONFIG_DIR" ]; then
+                        cd "$CONFIG_DIR"
+                        git fetch origin "$CONFIG_BRANCH"
+                        git reset --hard origin/"$CONFIG_BRANCH"
+                    else
+                        git clone --branch "$CONFIG_BRANCH" "$CONFIG_REPO" "$CONFIG_DIR"
+                        cd "$CONFIG_DIR"
+                    fi
+
+                    cp samconfig.toml ../samconfig.toml
+                    cd ..
+
+                    echo "Usando samconfig.toml externo:"
+                    cat samconfig.toml
+                '''
+                stash name: 'samconfig', includes: 'samconfig.toml'
+            }
+        }
+
+        stage('Deploy Production') {
+            agent { label 'linux' }
+            steps {
+                sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
+                '''
+                unstash 'code'
+                unstash 'samconfig'
+                script {
+                    sh "sam build"
+                    sh "sam validate"
+
+                    def deployStatus = sh(
+                        script: "sam deploy --config-env production --no-fail-on-empty-changeset",
+                        returnStatus: true
+                    )
+                    echo "Deploy exit code: ${deployStatus}"
+
+                    env.BASE_URL = sh(
+                        script: "aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query \"Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue\" --output text",
+                        returnStdout: true
+                    ).trim()
+
+                    echo "API Base URL: ${env.BASE_URL}"
+                    writeFile file: 'base_url.txt', text: env.BASE_URL
+                    stash name: 'base_url', includes: 'base_url.txt'
+                }
+            }
+        }
+
+        stage('Rest Test (Read Only)') {
+            agent { label 'linux' }
+            steps {
+                sh '''
+                    echo "Node: $(hostname)"
+                    echo "User: $(whoami)"
+                '''
+                unstash 'code'
+                unstash 'base_url'
+                script {
+                    env.BASE_URL = readFile('base_url.txt').trim()
+                }
+                sh '''
+                    echo "=== REST TEST PRODUCTION ==="
+                    echo "API Base URL: $BASE_URL"
+                    export BASE_URL
+                    python3 -m pytest test/integration/todoApiTest.py \
+                        -m readonly \
+                        --maxfail=1 \
+                        --disable-warnings \
+                        --junitxml=reports/test-results.xml
+                '''
+                stash includes: 'reports/**', name: 'pytest-results'
+            }
+        }
+    }
+
+    post {
+        always {
+            unstash 'pytest-results'
+            junit 'reports/test-results.xml'
+            echo 'Cleaning workspace...'
+            cleanWs()
+        }
+    }
+}
