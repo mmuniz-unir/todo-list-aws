@@ -62,7 +62,6 @@ pipeline {
         }
 
         stage('Rest Test') {
-            agent { label 'linux' }
             steps {
                 unstash 'code'
                 unstash 'base_url'
