@@ -111,10 +111,9 @@ pipeline {
                         git checkout master
                         git pull origin master
         
-                        # Merge normal
+
                         git merge develop --no-ff -m "Promote to master"
         
-                        # Forzar mantener Jenkinsfile de master
                         git checkout origin/master -- Jenkinsfile
         
                         git add Jenkinsfile
