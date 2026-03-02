@@ -27,7 +27,8 @@ pipeline {
                 
                 unstash 'code'
                 sh '''
-                
+                echo "Node: $(hostname)"
+                echo "User: $(whoami)" 
                 flake8 --format=pylint --exit-zero src | tee flake8.out
                 
                 '''
@@ -42,7 +43,8 @@ pipeline {
                 unstash name:'code'
                 
                 sh '''
-                
+                echo "Node: $(hostname)"
+                echo "User: $(whoami)" 
                 bandit --exit-zero -r src -f txt | tee bandit.out
                 
                 '''
@@ -57,6 +59,8 @@ pipeline {
             steps {
                 unstash 'code'
                 sh '''
+                echo "Node: $(hostname)"
+                echo "User: $(whoami)" 
                 echo "=== SAM Build ==="
                 sam build
         
@@ -74,6 +78,8 @@ pipeline {
             steps {
                 unstash 'code'
                 sh '''
+                echo "Node: $(hostname)"
+                echo "User: $(whoami)" 
                 echo "=== Rest Test Stage (Pytest) ==="
         
                 # Obtener URL de la API desde CloudFormation
@@ -105,6 +111,8 @@ pipeline {
                     passwordVariable: 'GIT_TOKEN'
                 )]) {
                     sh '''
+                        echo "Node: $(hostname)"
+                        echo "User: $(whoami)" 
                         git config --global user.name "Marc Muñiz"
                         git config --global user.email "marcmusuau@gmail.com"
         

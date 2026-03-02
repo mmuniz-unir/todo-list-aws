@@ -18,6 +18,8 @@ pipeline {
                     steps {
                         unstash 'code'
                         sh '''
+                        echo "Node: $(hostname)"
+                        echo "User: $(whoami)" 
                         flake8 --format=pylint --exit-zero src | tee flake8.out
                         '''
                     }
@@ -27,6 +29,8 @@ pipeline {
                     steps {
                         unstash 'code'
                         sh '''
+                        echo "Node: $(hostname)"
+                        echo "User: $(whoami)" 
                         bandit --exit-zero -r src -f txt | tee bandit.out
                         '''
                     }
@@ -41,6 +45,8 @@ pipeline {
                     def STACK_NAME = "staging-todo-list-aws"
                     sh "sam build"
                     sh "sam validate"
+                    sh "echo "Node: $(hostname)""
+                    sh "echo "User: $(whoami)""
                     def deployStatus = sh(
                         script: "sam deploy --config-env staging --no-fail-on-empty-changeset",
                         returnStatus: true
@@ -67,6 +73,8 @@ pipeline {
                 unstash 'base_url'
                 script { env.BASE_URL = readFile('base_url.txt').trim() }
                 sh '''
+                echo "Node: $(hostname)"
+                echo "User: $(whoami)"                
                 echo "=== Rest Test Stage (Pytest) ==="
                 BASE_URL=${BASE_URL}
                 export BASE_URL
@@ -84,6 +92,8 @@ pipeline {
                     passwordVariable: 'GIT_TOKEN'
                 )]) {
                     sh '''
+                        echo "Node: $(hostname)"
+                        echo "User: $(whoami)"
                         git config --global user.name "Marc Muñiz"
                         git config --global user.email "marcmusuau@gmail.com"
                         git config merge.ours.driver true
