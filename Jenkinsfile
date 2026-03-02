@@ -111,11 +111,14 @@ pipeline {
                         git checkout master
                         git pull origin master
         
-                        git merge develop --no-commit --no-ff
+                        # Merge normal
+                        git merge develop --no-ff -m "Promote to master"
         
+                        # Forzar mantener Jenkinsfile de master
                         git checkout origin/master -- Jenkinsfile
         
-                        git commit -m "Promote to master (keeping CD Jenkinsfile)"
+                        git add Jenkinsfile
+                        git commit --amend --no-edit
         
                         git remote set-url origin https://${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
                         git push origin master
