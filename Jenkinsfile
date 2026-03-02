@@ -46,14 +46,19 @@ pipeline {
                     python3 -m pytest test/integration/todoApiTest.py \
                         -m readonly \
                         --maxfail=1 \
-                        --disable-warnings
+                        --disable-warnings \
+                        --junitxml=reports/test-results.xml
                 '''
+                stash includes: 'reports/**', name: 'pytest-results'
+                
             }
         }
     }
 
     post {
         always {
+            unstash 'pytest-results'
+            junit 'reports/test-results.xml'
             echo 'Cleaning workspace...'
             cleanWs()
         }
