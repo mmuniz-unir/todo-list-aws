@@ -55,7 +55,7 @@ pipeline {
 
                     CONFIG_DIR=config
                     CONFIG_REPO=https://github.com/mmuniz-unir/todo-list-aws-config.git
-                    CONFIG_BRANCH=production
+                    CONFIG_BRANCH=Production
 
                     if [ -d "$CONFIG_DIR" ]; then
                         cd "$CONFIG_DIR"
