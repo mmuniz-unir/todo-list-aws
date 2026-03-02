@@ -51,7 +51,6 @@ pipeline {
                     fi
                     cp samconfig.toml ..
                     cat samconfig.toml
-                    cat ../samconfig.toml
                 '''
                 stash name: 'samconfig', includes: 'samconfig.toml'
             }
