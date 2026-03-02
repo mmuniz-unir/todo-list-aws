@@ -1,77 +1,51 @@
 pipeline {
     agent any
-
     options { skipDefaultCheckout() }
 
-     stages {
-     
+    stages {
         stage('Get Code') {
-            
             steps {
-                // Obtener código del repo
-                
                 git branch: 'develop',
-                url: 'https://github.com/mmuniz-unir/todo-list-aws.git'
+                    url: 'https://github.com/mmuniz-unir/todo-list-aws.git'
                 stash name:'code', includes:'**'
             }
         }
-        
+
         stage('Static Test') {
-        
-        
             parallel {
-            
-            stage ('Flake8') {
-                agent { 
-                        label 'linux' 
+                stage ('Flake8') {
+                    agent { label 'linux' }
+                    steps {
+                        unstash 'code'
+                        sh '''
+                        flake8 --format=pylint --exit-zero src | tee flake8.out
+                        '''
                     }
-                steps {
-                
-                unstash 'code'
-                sh '''
-                
-                flake8 --format=pylint --exit-zero src | tee flake8.out
-                
-                '''
-
                 }
+                stage ('Bandit') {
+                    agent { label 'linux' }
+                    steps {
+                        unstash 'code'
+                        sh '''
+                        bandit --exit-zero -r src -f txt | tee bandit.out
+                        '''
+                    }
+                }
+            }
         }
 
-            stage ('Bandit') {
-                agent { 
-                        label 'linux' 
-                    }
-                steps {
-                
-                unstash name:'code'
-                
-                sh '''
-                
-                bandit --exit-zero -r src -f txt | tee bandit.out
-                
-                '''
-                    
-                }
-        }        
-        
-        }
-    }
         stage('Deploy') {
             steps {
                 unstash 'code'
                 script {
-                    // SAM Build & Validate
+                    def STACK_NAME = "staging-todo-list-aws"
                     sh "sam build"
                     sh "sam validate"
-        
-                    // SAM Deploy sin fallar si no hay cambios
                     def deployStatus = sh(
                         script: "sam deploy --config-env staging --no-fail-on-empty-changeset",
                         returnStatus: true
                     )
                     echo "Deploy exit code: ${deployStatus}"
-        
-                    // Obtener la URL de la API y stashearla
                     try {
                         env.BASE_URL = sh(
                             script: "aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query \"Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue\" --output text",
@@ -82,34 +56,21 @@ pipeline {
                         stash name: 'base_url', includes: 'base_url.txt'
                     } catch (err) {
                         echo "⚠️ No se pudo obtener la URL de la API: ${err}"
-                        // No fallar la etapa para que Rest Test se ejecute en otro agente si es posible
                     }
                 }
             }
         }
-        
-            
+
         stage('Rest Test') {
-            agent { 
-                        label 'linux' 
-                    }
+            agent { label 'linux' }
             steps {
                 unstash 'code'
                 unstash 'base_url'
-                script {
-                    env.BASE_URL = readFile('base_url.txt').trim()
-                }
+                script { env.BASE_URL = readFile('base_url.txt').trim() }
                 sh '''
                 echo "=== Rest Test Stage (Pytest) ==="
-        
-                # Obtener URL de la API desde CloudFormation
                 BASE_URL=${BASE_URL}
-                echo "API Base URL: $BASE_URL"
-        
-                # Exportamos la variable para Pytest
                 export BASE_URL
-        
-                # Ejecutamos las pruebas de integración con Pytest
                 python3 -m pytest test/integration/todoApiTest.py --maxfail=1 --disable-warnings --junitxml=reports/test-results.xml
                 '''
                 stash includes: 'reports/**', name: 'pytest-results'
@@ -117,11 +78,7 @@ pipeline {
         }
 
         stage('Promote') {
-            
             steps {
-
-                echo "=== Promote Stage ==="
-        
                 withCredentials([usernamePassword(
                     credentialsId: 'github-token', 
                     usernameVariable: 'GIT_USER', 
@@ -130,27 +87,22 @@ pipeline {
                     sh '''
                         git config --global user.name "Marc Muñiz"
                         git config --global user.email "marcmusuau@gmail.com"
-        
                         git config merge.ours.driver true
-        
                         git checkout master
                         git pull origin master
-        
                         git merge develop --no-ff -m "Promote to master"
-        
                         git remote set-url origin https://${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
                         git push origin master
                     '''
-            
+                }
             }
         }
-    }    
     }
-        post {
+
+    post {
         always {
             unstash 'pytest-results'
             junit 'reports/test-results.xml'
-            echo 'Cleaning workspace...'
             cleanWs()
         }
     }
