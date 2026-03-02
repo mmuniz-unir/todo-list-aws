@@ -39,6 +39,7 @@ pipeline {
         }
 
         stage('Deploy Production') {
+            agent { label 'linux' }
             steps {
                 unstash 'code'
                 script {
@@ -64,7 +65,6 @@ pipeline {
         }
 
         stage('Rest Test (Read Only)') {
-            agent { label 'linux' }
             steps {
                 unstash 'code'
                 unstash 'base_url'
