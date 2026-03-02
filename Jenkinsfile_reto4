@@ -77,7 +77,6 @@ pipeline {
         }
 
         stage('Deploy Production') {
-            agent { label 'linux' }
             steps {
                 sh '''
                     echo "Node: $(hostname)"
