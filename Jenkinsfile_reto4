@@ -3,6 +3,8 @@ pipeline {
 
     environment {
         STACK_NAME = "todo-list-aws-production"
+        AWS_DEFAULT_REGION = "us-east-1"
+
     }
 
     stages {
