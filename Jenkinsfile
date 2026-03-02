@@ -108,16 +108,12 @@ pipeline {
                         git config --global user.name "Marc Muñiz"
                         git config --global user.email "marcmusuau@gmail.com"
         
+                        git config merge.ours.driver true
+        
                         git checkout master
                         git pull origin master
         
-
                         git merge develop --no-ff -m "Promote to master"
-        
-                        git checkout origin/master -- Jenkinsfile
-        
-                        git add Jenkinsfile
-                        git commit --amend --no-edit
         
                         git remote set-url origin https://${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
                         git push origin master
