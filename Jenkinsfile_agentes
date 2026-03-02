@@ -55,7 +55,7 @@ pipeline {
                         writeFile file: 'base_url.txt', text: env.BASE_URL
                         stash name: 'base_url', includes: 'base_url.txt'
                     } catch (err) {
-                        echo "⚠️ No se pudo obtener la URL de la API: ${err}"
+                        echo "No se pudo obtener la URL de la API: ${err}"
                     }
                 }
             }
@@ -90,6 +90,7 @@ pipeline {
                         git checkout master
                         git pull origin master
                         git merge develop --no-ff -m "Promote to master"
+                        git checkout HEAD -- Jenkinsfile Jenkinsfile_agentes
                         git remote set-url origin https://${GIT_TOKEN}@github.com/mmuniz-unir/todo-list-aws.git
                         git push origin master
                     '''
