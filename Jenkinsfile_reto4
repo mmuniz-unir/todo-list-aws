@@ -50,7 +50,8 @@ pipeline {
                         git clone --branch staging https://github.com/mmuniz-unir/todo-list-aws-config.git config
                     fi
                     cp samconfig.toml ..
-                    cat samconfig.toml ..
+                    cat samconfig.toml
+                    cat ../samconfig.toml
                 '''
                 stash name: 'samconfig', includes: 'samconfig.toml'
             }
