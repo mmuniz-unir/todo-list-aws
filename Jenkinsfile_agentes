@@ -60,16 +60,13 @@ pipeline {
         
             steps {
                 unstash 'code'
-                sh '''
-                echo "=== SAM Build ==="
-                sam build
-        
-                echo "=== SAM Validate ==="
-                sam validate
-        
-                echo "=== Deploy to Staging ==="
-                sam deploy --config-env staging --no-fail-on-empty-changeset || true
-                '''
+                sh "sam build"
+                sh "sam validate"
+                def deployStatus = sh(
+                    script: "sam deploy --config-env staging --no-fail-on-empty-changeset",
+                    returnStatus: true
+                )
+                echo "Deploy exit code: ${deployStatus}"
                 script {
                     env.BASE_URL = sh(
                         script: "aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query \"Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue\" --output text",
